@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+@theme {
+  /* Fonts */
+  --font-serif: "Playfair Display", serif;
+  --font-sans: "Inter", sans-serif;
+
+  /* Aetheria Verba Color Palette */
+  --color-aetheria-beige: #DCCCA3;
+  --color-aetheria-grape: #824C71;
+  --color-aetheria-blackberry: #4A2545;
+  --color-aetheria-dark: #000001;
+  --color-aetheria-teal: #90AA86;
+  --color-aetheria-cardDark: #170B16;
+}
+
+/* Enable class-based dark mode */
+@custom-variant dark (&:where(.dark, .dark *));
+
+body {
+  background-color: var(--color-aetheria-beige);
+  color: var(--color-aetheria-dark);
+  transition: background-color 0.3s, color 0.3s;
+  font-family: var(--font-sans);
+}
+
+.dark body {
+  background-color: var(--color-aetheria-dark);
+  color: var(--color-aetheria-beige);
+}
