@@ -111,7 +111,7 @@ export default function App() {
             AETHERIA VERBA
           </h1>
           <p className="text-sm italic mt-2 text-aetheria-blackberry/80 dark:text-aetheria-beige/80">
-            Ethereal thoughts on technology, culture, language, and quiet observations.
+            Here lies my yearning soul.
           </p>
         </div>
 
