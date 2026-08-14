@@ -34,16 +34,22 @@ function JournalHome({
 
   const { bookmarkedIds, toggleBookmark, isBookmarked } = useBookmarks();
 
-  const categories = ['All', 'Saved', 'Tech', 'Mandarin', 'Pets', 'Love', 'Science', 'Travel', 'Career'];
+  // Updated categories list
+  const categories = ['All', 'Saved', 'Featured Stories', 'Other Stories'];
 
   const filteredArticles = ARTICLES.filter((article: Article) => {
-    const matchesCategory = 
-      selectedCategory === 'All' 
-        ? true 
-        : selectedCategory === 'Saved' 
-          ? isBookmarked(article.id) 
-          : article.category === selectedCategory;
+    // 1. Category / Filter Logic
+    let matchesCategory = true;
 
+    if (selectedCategory === 'Saved') {
+      matchesCategory = isBookmarked(article.id);
+    } else if (selectedCategory === 'Featured Stories') {
+      matchesCategory = Boolean(article.featured);
+    } else if (selectedCategory === 'Other Stories') {
+      matchesCategory = !article.featured;
+    }
+
+    // 2. Search Query Logic
     const matchesSearch = 
       article.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       article.excerpt.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -185,7 +191,7 @@ function JournalHome({
                 ? 'Your Bookmarked Articles'
                 : selectedCategory === 'All' 
                   ? 'Latest Entries' 
-                  : `${selectedCategory} Articles`}
+                  : `${selectedCategory}`}
           </h3>
           <span className="text-xs text-aetheria-blackberry/60 dark:text-aetheria-beige/60">
             {filteredArticles.length} {filteredArticles.length === 1 ? 'article' : 'articles'} found
