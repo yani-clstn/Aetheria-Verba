@@ -359,7 +359,7 @@ function ArticleDetailPage() {
         />
 
         {/* Content Rendered via Markdown */}
-        <div className="prose dark:prose-invert max-w-none font-serif text-lg leading-relaxed text-aetheria-blackberry/90 dark:text-aetheria-beige/90">
+        <div className="prose dark:prose-invert max-w-2xl mx-auto font-serif text-lg md:text-xl leading-relaxed text-stone-800 dark:text-stone-100 dark:prose-p:text-stone-100 space-y-6">
           <ReactMarkdown>{article.content}</ReactMarkdown>
         </div>
       </article>
