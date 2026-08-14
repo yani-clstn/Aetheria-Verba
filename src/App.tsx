@@ -1,30 +1,42 @@
 import { useState, useEffect } from 'react';
-import { Sun, Moon, Sparkles, Search, X, Bookmark } from 'lucide-react';
+import { BrowserRouter, Routes, Route, useParams, Link } from 'react-router-dom';
+import { Sun, Moon, Sparkles, Search, X, Bookmark, Eye, ArrowLeft } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import { ARTICLES, type Article } from './data/articles';
-import ArticleModal from './components/ArticleModal';
 import { useBookmarks } from './hooks/useBookmarks';
 
-export default function App() {
-  const [darkMode, setDarkMode] = useState<boolean>(true);
+// --- VIEW COUNTER HELPER (Uses LocalStorage) ---
+const getViewCount = (articleId: string): number => {
+  const savedViews = localStorage.getItem(`aetheria_views_${articleId}`);
+  return savedViews ? parseInt(savedViews, 10) : 12; // Base starting view count
+};
+
+const incrementViewCount = (articleId: string): number => {
+  const currentViews = getViewCount(articleId);
+  const newViews = currentViews + 1;
+  localStorage.setItem(`aetheria_views_${articleId}`, newViews.toString());
+  return newViews;
+};
+
+// ==========================================
+// 1. HOME JOURNAL PAGE COMPONENT
+// ==========================================
+function JournalHome({ 
+  darkMode, 
+  setDarkMode 
+}: { 
+  darkMode: boolean; 
+  setDarkMode: (val: boolean) => void;
+}) {
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
-  const [activeArticle, setActiveArticle] = useState<Article | null>(null);
 
   const { bookmarkedIds, toggleBookmark, isBookmarked } = useBookmarks();
-
-  useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [darkMode]);
 
   const categories = ['All', 'Saved', 'Tech', 'Mandarin', 'Pets', 'Love', 'Science', 'Travel', 'Career'];
 
   const filteredArticles = ARTICLES.filter((article: Article) => {
-    // Category or Saved filter
     const matchesCategory = 
       selectedCategory === 'All' 
         ? true 
@@ -32,7 +44,6 @@ export default function App() {
           ? isBookmarked(article.id) 
           : article.category === selectedCategory;
 
-    // Search filter
     const matchesSearch = 
       article.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       article.excerpt.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -45,14 +56,6 @@ export default function App() {
 
   return (
     <div className="min-h-screen px-4 md:px-12 py-6 max-w-7xl mx-auto">
-      {/* Modal Component */}
-      <ArticleModal 
-        article={activeArticle} 
-        onClose={() => setActiveArticle(null)} 
-        isBookmarked={activeArticle ? isBookmarked(activeArticle.id) : false}
-        onToggleBookmark={toggleBookmark}
-      />
-
       {/* --- HEADER & MASTHEAD --- */}
       <header className="border-b border-aetheria-blackberry/20 dark:border-aetheria-beige/20 pb-6 mb-8">
         <div className="flex justify-between items-center mb-4">
@@ -107,9 +110,11 @@ export default function App() {
         </div>
 
         <div className="text-center my-6">
-          <h1 className="font-serif text-5xl md:text-7xl font-bold tracking-tight text-aetheria-blackberry dark:text-aetheria-beige">
-            AETHERIA VERBA
-          </h1>
+          <Link to="/">
+            <h1 className="font-serif text-5xl md:text-7xl font-bold tracking-tight text-aetheria-blackberry dark:text-aetheria-beige hover:opacity-90 transition-opacity">
+              AETHERIA VERBA
+            </h1>
+          </Link>
           <p className="text-sm italic mt-2 text-aetheria-blackberry/80 dark:text-aetheria-beige/80">
             Here lies my yearning soul.
           </p>
@@ -135,36 +140,38 @@ export default function App() {
       </header>
 
       {/* --- FEATURED HERO ARTICLE --- */}
-      {selectedCategory === 'All' && !searchQuery && (
-        <section className="mb-12 cursor-pointer relative" onClick={() => setActiveArticle(featuredArticle)}>
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 bg-aetheria-grape/10 dark:bg-aetheria-cardDark p-6 rounded-2xl border border-aetheria-blackberry/10 dark:border-aetheria-beige/10 hover:border-aetheria-teal transition-all group">
-            <div className="md:col-span-7 flex flex-col justify-between">
-              <div>
-                <span className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-aetheria-teal mb-2">
-                  <Sparkles size={14} /> Featured Story
-                </span>
-                <h2 className="font-serif text-3xl md:text-4xl font-bold mb-4 text-aetheria-blackberry dark:text-aetheria-beige group-hover:text-aetheria-grape dark:group-hover:text-aetheria-teal transition-colors">
-                  {featuredArticle.title}
-                </h2>
-                <p className="text-sm md:text-base mb-6 text-aetheria-blackberry/80 dark:text-aetheria-beige/80 line-clamp-3">
-                  {featuredArticle.excerpt}
-                </p>
+      {selectedCategory === 'All' && !searchQuery && featuredArticle && (
+        <section className="mb-12 relative">
+          <Link to={`/article/${featuredArticle.id}`}>
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 bg-aetheria-grape/10 dark:bg-aetheria-cardDark p-6 rounded-2xl border border-aetheria-blackberry/10 dark:border-aetheria-beige/10 hover:border-aetheria-teal transition-all group cursor-pointer">
+              <div className="md:col-span-7 flex flex-col justify-between">
+                <div>
+                  <span className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-aetheria-teal mb-2">
+                    <Sparkles size={14} /> Featured Story
+                  </span>
+                  <h2 className="font-serif text-3xl md:text-4xl font-bold mb-4 text-aetheria-blackberry dark:text-aetheria-beige group-hover:text-aetheria-grape dark:group-hover:text-aetheria-teal transition-colors">
+                    {featuredArticle.title}
+                  </h2>
+                  <p className="text-sm md:text-base mb-6 text-aetheria-blackberry/80 dark:text-aetheria-beige/80 line-clamp-3">
+                    {featuredArticle.excerpt}
+                  </p>
+                </div>
+                <div className="flex items-center justify-between text-xs text-aetheria-blackberry/60 dark:text-aetheria-beige/60">
+                  <span>{featuredArticle.date} • {featuredArticle.readTime}</span>
+                  <span className="px-2 py-0.5 rounded border border-aetheria-teal text-aetheria-teal">
+                    {featuredArticle.category}
+                  </span>
+                </div>
               </div>
-              <div className="flex items-center justify-between text-xs text-aetheria-blackberry/60 dark:text-aetheria-beige/60">
-                <span>{featuredArticle.date} • {featuredArticle.readTime}</span>
-                <span className="px-2 py-0.5 rounded border border-aetheria-teal text-aetheria-teal">
-                  {featuredArticle.category}
-                </span>
+              <div className="md:col-span-5 h-64 md:h-72 overflow-hidden rounded-xl">
+                <img 
+                  src={featuredArticle.imageUrl} 
+                  alt={featuredArticle.title} 
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
               </div>
             </div>
-            <div className="md:col-span-5 h-64 md:h-72 overflow-hidden rounded-xl">
-              <img 
-                src={featuredArticle.imageUrl} 
-                alt={featuredArticle.title} 
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-              />
-            </div>
-          </div>
+          </Link>
         </section>
       )}
 
@@ -203,51 +210,60 @@ export default function App() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredArticles.map((article) => {
               const saved = isBookmarked(article.id);
+              const views = getViewCount(article.id);
+
               return (
                 <article 
                   key={article.id}
-                  onClick={() => setActiveArticle(article)}
-                  className="bg-white/40 dark:bg-aetheria-cardDark rounded-xl overflow-hidden border border-aetheria-blackberry/10 dark:border-aetheria-beige/10 flex flex-col justify-between hover:border-aetheria-teal transition-all group cursor-pointer relative"
+                  className="bg-white/40 dark:bg-aetheria-cardDark rounded-xl overflow-hidden border border-aetheria-blackberry/10 dark:border-aetheria-beige/10 flex flex-col justify-between hover:border-aetheria-teal transition-all group relative"
                 >
-                  <div className="h-48 overflow-hidden relative">
-                    <img 
-                      src={article.imageUrl} 
-                      alt={article.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
-                    />
-                    {/* Quick Bookmark Toggle Button */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation(); // Don't open modal when bookmarking
-                        toggleBookmark(article.id);
-                      }}
-                      className="absolute top-3 right-3 p-2 rounded-full bg-black/40 backdrop-blur-md text-white hover:bg-aetheria-teal transition-all"
-                      aria-label="Bookmark article"
-                    >
-                      <Bookmark size={14} fill={saved ? 'currentColor' : 'none'} />
-                    </button>
-                  </div>
-                  <div className="p-5 flex-1 flex flex-col justify-between">
-                    <div>
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-xs font-semibold text-aetheria-teal uppercase tracking-wider">
-                          {article.category}
-                        </span>
-                        <span className="text-xs text-aetheria-blackberry/60 dark:text-aetheria-beige/60">
-                          {article.readTime}
+                  <Link to={`/article/${article.id}`} className="block flex-1 flex flex-col justify-between">
+                    <div className="h-48 overflow-hidden relative">
+                      <img 
+                        src={article.imageUrl} 
+                        alt={article.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                      />
+                      {/* Bookmark Button */}
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          toggleBookmark(article.id);
+                        }}
+                        className="absolute top-3 right-3 p-2 rounded-full bg-black/40 backdrop-blur-md text-white hover:bg-aetheria-teal transition-all z-10"
+                        aria-label="Bookmark article"
+                      >
+                        <Bookmark size={14} fill={saved ? 'currentColor' : 'none'} />
+                      </button>
+                    </div>
+
+                    <div className="p-5 flex-1 flex flex-col justify-between">
+                      <div>
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="text-xs font-semibold text-aetheria-teal uppercase tracking-wider">
+                            {article.category}
+                          </span>
+                          <span className="text-xs text-aetheria-blackberry/60 dark:text-aetheria-beige/60">
+                            {article.readTime}
+                          </span>
+                        </div>
+                        <h4 className="font-serif text-xl font-bold mb-2 group-hover:text-aetheria-grape dark:group-hover:text-aetheria-teal transition-colors">
+                          {article.title}
+                        </h4>
+                        <p className="text-xs md:text-sm text-aetheria-blackberry/80 dark:text-aetheria-beige/80 line-clamp-2 mb-4">
+                          {article.excerpt}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center justify-between text-xs text-aetheria-blackberry/50 dark:text-aetheria-beige/50 pt-2 border-t border-aetheria-blackberry/5 dark:border-aetheria-beige/5">
+                        <span>{article.date}</span>
+                        <span className="flex items-center gap-1">
+                          <Eye size={12} /> {views} views
                         </span>
                       </div>
-                      <h4 className="font-serif text-xl font-bold mb-2 group-hover:text-aetheria-grape dark:group-hover:text-aetheria-teal transition-colors">
-                        {article.title}
-                      </h4>
-                      <p className="text-xs md:text-sm text-aetheria-blackberry/80 dark:text-aetheria-beige/80 line-clamp-2 mb-4">
-                        {article.excerpt}
-                      </p>
                     </div>
-                    <div className="text-xs text-aetheria-blackberry/50 dark:text-aetheria-beige/50 pt-2 border-t border-aetheria-blackberry/5 dark:border-aetheria-beige/5">
-                      {article.date}
-                    </div>
-                  </div>
+                  </Link>
                 </article>
               );
             })}
@@ -255,5 +271,122 @@ export default function App() {
         )}
       </main>
     </div>
+  );
+}
+
+// ==========================================
+// 2. DEDICATED ARTICLE PAGE COMPONENT (SEO & VIEWS)
+// ==========================================
+function ArticleDetailPage() {
+  const { id } = useParams<{ id: string }>();
+  const article = ARTICLES.find((a) => a.id === id);
+  const [views, setViews] = useState<number>(0);
+  const { isBookmarked, toggleBookmark } = useBookmarks();
+
+  useEffect(() => {
+    if (id) {
+      // Record view on page visit
+      const updatedViews = incrementViewCount(id);
+      setViews(updatedViews);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    // Dynamically update head title for search engines
+    if (article) {
+      document.title = `${article.title} — Aetheria Verba`;
+    }
+    return () => {
+      document.title = 'AETHERIA VERBA';
+    };
+  }, [article]);
+
+  if (!article) {
+    return (
+      <div className="min-h-screen max-w-3xl mx-auto px-4 py-20 text-center">
+        <h2 className="text-2xl font-serif font-bold mb-4">Story Not Found</h2>
+        <Link to="/" className="text-aetheria-teal hover:underline inline-flex items-center gap-1">
+          <ArrowLeft size={16} /> Return to Journal
+        </Link>
+      </div>
+    );
+  }
+
+  const saved = isBookmarked(article.id);
+
+  return (
+    <div className="min-h-screen px-4 md:px-12 py-8 max-w-4xl mx-auto">
+      {/* Back button and actions */}
+      <div className="flex items-center justify-between mb-8">
+        <Link 
+          to="/" 
+          className="text-xs uppercase tracking-widest text-aetheria-teal hover:underline inline-flex items-center gap-1 font-semibold"
+        >
+          <ArrowLeft size={14} /> Back to all stories
+        </Link>
+
+        <button
+          onClick={() => toggleBookmark(article.id)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-aetheria-blackberry/20 dark:border-aetheria-beige/20 text-xs hover:border-aetheria-teal transition-all"
+        >
+          <Bookmark size={14} fill={saved ? 'currentColor' : 'none'} />
+          {saved ? 'Saved' : 'Save Story'}
+        </button>
+      </div>
+
+      <article>
+        <header className="mb-8">
+          <div className="flex justify-between items-center text-xs text-aetheria-blackberry/60 dark:text-aetheria-beige/60 uppercase tracking-wider mb-3">
+            <span className="font-semibold text-aetheria-teal">{article.category}</span>
+            <span className="flex items-center gap-1">
+              <Eye size={14} /> {views.toLocaleString()} views
+            </span>
+          </div>
+
+          <h1 className="font-serif text-4xl md:text-6xl font-bold leading-tight mb-4 text-aetheria-blackberry dark:text-aetheria-beige">
+            {article.title}
+          </h1>
+
+          <p className="text-sm text-aetheria-blackberry/70 dark:text-aetheria-beige/70">
+            {article.date} • {article.readTime}
+          </p>
+        </header>
+
+        <img
+          src={article.imageUrl}
+          alt={article.title}
+          className="w-full h-80 md:h-[450px] object-cover rounded-2xl mb-10 shadow-lg border border-aetheria-blackberry/10 dark:border-aetheria-beige/10"
+        />
+
+        {/* Content Rendered via Markdown */}
+        <div className="prose dark:prose-invert max-w-none font-serif text-lg leading-relaxed text-aetheria-blackberry/90 dark:text-aetheria-beige/90">
+          <ReactMarkdown>{article.content}</ReactMarkdown>
+        </div>
+      </article>
+    </div>
+  );
+}
+
+// ==========================================
+// 3. MAIN APP ROUTER WRAPPER
+// ==========================================
+export default function App() {
+  const [darkMode, setDarkMode] = useState<boolean>(true);
+
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [darkMode]);
+
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<JournalHome darkMode={darkMode} setDarkMode={setDarkMode} />} />
+        <Route path="/article/:id" element={<ArticleDetailPage />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
