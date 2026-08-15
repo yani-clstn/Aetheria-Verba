@@ -7,6 +7,7 @@ date: "Aug 12, 2026"
 readTime: "3 min read"
 imageUrl: "https://images/unsplash.com/"
 subtitleQuote: 'Longing lives in the past. Yearning dares to stay in the present. '
+featured: true
 
 ---
 

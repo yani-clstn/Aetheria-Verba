@@ -6,6 +6,7 @@ category: "Life"
 date: "Aug 13, 2026"
 readTime: "4 min read"
 imageUrl: "/assets/jeepney.png"
+featured: true
 ---
 
 Sa loob lang ng isang byahe, nakita ko ang *mundo*.

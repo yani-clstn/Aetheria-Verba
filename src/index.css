@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@tailwindcss components;
+@tailwindcss utilities;
 
 @theme {
   /* Fonts */
