@@ -4,18 +4,12 @@ import { Sun, Moon, Sparkles, Search, X, Bookmark, Eye, ArrowLeft } from 'lucide
 import ReactMarkdown from 'react-markdown';
 import { ARTICLES, type Article } from './data/articles';
 import { useBookmarks } from './hooks/useBookmarks';
+import { supabase } from './lib/supabase';
 
-// --- VIEW COUNTER HELPER (Uses LocalStorage) ---
-const getViewCount = (articleId: string): number => {
+// --- VIEW COUNTER HELPERS (Supabase RPC with LocalStorage Fallback) ---
+const getLocalViewCount = (articleId: string): number => {
   const savedViews = localStorage.getItem(`aetheria_views_${articleId}`);
-  return savedViews ? parseInt(savedViews, 10) : 12; // Base starting view count
-};
-
-const incrementViewCount = (articleId: string): number => {
-  const currentViews = getViewCount(articleId);
-  const newViews = currentViews + 1;
-  localStorage.setItem(`aetheria_views_${articleId}`, newViews.toString());
-  return newViews;
+  return savedViews ? parseInt(savedViews, 10) : 0;
 };
 
 // ==========================================
@@ -31,10 +25,31 @@ function JournalHome({
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
+  const [viewCounts, setViewCounts] = useState<Record<string, number>>({});
 
   const { bookmarkedIds, toggleBookmark, isBookmarked } = useBookmarks();
 
   const categories = ['All', 'Saved', 'Tech', 'Mandarin', 'Pets', 'Love', 'Science', 'Travel', 'Career'];
+
+  // Fetch all article view counts from Supabase on mount
+  useEffect(() => {
+    async function fetchAllViews() {
+      try {
+        const { data, error } = await supabase.from('article_views').select('id, views');
+        if (!error && data) {
+          const viewsMap: Record<string, number> = {};
+          data.forEach((item: { id: string; views: number }) => {
+            viewsMap[item.id] = item.views;
+          });
+          setViewCounts(viewsMap);
+        }
+      } catch (err) {
+        console.error('Error fetching view counts:', err);
+      }
+    }
+
+    fetchAllViews();
+  }, []);
 
   const filteredArticles = ARTICLES.filter((article: Article) => {
     const matchesCategory = 
@@ -210,7 +225,7 @@ function JournalHome({
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredArticles.map((article) => {
               const saved = isBookmarked(article.id);
-              const views = getViewCount(article.id);
+              const views = viewCounts[article.id] ?? getLocalViewCount(article.id);
 
               return (
                 <article 
@@ -259,7 +274,7 @@ function JournalHome({
                       <div className="flex items-center justify-between text-xs text-aetheria-blackberry/50 dark:text-aetheria-beige/50 pt-2 border-t border-aetheria-blackberry/5 dark:border-aetheria-beige/5">
                         <span>{article.date}</span>
                         <span className="flex items-center gap-1">
-                          <Eye size={12} /> {views} views
+                          <Eye size={12} /> {views.toLocaleString()} views
                         </span>
                       </div>
                     </div>
@@ -275,7 +290,7 @@ function JournalHome({
 }
 
 // ==========================================
-// 2. DEDICATED ARTICLE PAGE COMPONENT (SEO & VIEWS)
+// 2. DEDICATED ARTICLE PAGE COMPONENT (SEO & SUPABASE VIEWS)
 // ==========================================
 function ArticleDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -284,11 +299,26 @@ function ArticleDetailPage() {
   const { isBookmarked, toggleBookmark } = useBookmarks();
 
   useEffect(() => {
-    if (id) {
-      // Record view on page visit
-      const updatedViews = incrementViewCount(id);
-      setViews(updatedViews);
+    if (!id) return;
+
+    // Atomically increment view count in Supabase
+    async function recordView() {
+      try {
+        const { data, error } = await supabase.rpc('increment_views', { article_id: id });
+        if (!error && data !== null) {
+          setViews(data);
+          localStorage.setItem(`aetheria_views_${id}`, data.toString());
+        } else {
+          // Fallback to local count if Supabase RPC returns error or null
+          setViews(getLocalViewCount(id || '') + 1);
+        }
+      } catch (err) {
+        console.error('Failed to increment view count:', err);
+        setViews(getLocalViewCount(id || '') + 1);
+      }
     }
+
+    recordView();
   }, [id]);
 
   useEffect(() => {
@@ -339,13 +369,17 @@ function ArticleDetailPage() {
           <div className="flex justify-between items-center text-xs text-aetheria-blackberry/60 dark:text-aetheria-beige/60 uppercase tracking-wider mb-3">
             <span className="font-semibold text-aetheria-teal">{article.category}</span>
             <span className="flex items-center gap-1">
-              <Eye size={14} /> {views.toLocaleString()} views
+              <Eye size={14} /> {views > 0 ? views.toLocaleString() : '...'} views
             </span>
           </div>
 
           <h1 className="font-serif text-4xl md:text-6xl font-bold leading-tight mb-4 text-aetheria-blackberry dark:text-aetheria-beige">
             {article.title}
           </h1>
+
+          <p className="text-base md:text-lg text-aetheria-blackberry/80 dark:text-aetheria-beige/80 mb-4 font-serif italic">
+            {article.excerpt}
+          </p>
 
           <p className="text-sm text-aetheria-blackberry/70 dark:text-aetheria-beige/70">
             {article.date} • {article.readTime}
@@ -355,10 +389,16 @@ function ArticleDetailPage() {
         <img
           src={article.imageUrl}
           alt={article.title}
-          className="w-full h-80 md:h-[450px] object-cover rounded-2xl mb-10 shadow-lg border border-aetheria-blackberry/10 dark:border-aetheria-beige/10"
+          className="w-full h-80 md:h-[450px] object-cover rounded-2xl mb-8 shadow-lg border border-aetheria-blackberry/10 dark:border-aetheria-beige/10"
         />
 
-        {/* Content Rendered via Markdown */}
+        {/* --- AUTOMATIC EPIGRAPH / CALLOUT BANNER --- */}
+        {article.subtitleQuote && (
+          <div className="max-w-2xl mx-auto mb-8 pl-4 border-l-2 border-aetheria-blackberry/30 dark:border-aetheria-beige/30 italic text-stone-600 dark:text-stone-300 font-serif text-base md:text-lg">
+            <ReactMarkdown>{article.subtitleQuote}</ReactMarkdown>
+          </div>
+        )}
+
         <div className="prose dark:prose-invert max-w-2xl mx-auto font-serif text-lg md:text-xl leading-relaxed text-stone-800 dark:text-stone-100 dark:prose-p:text-stone-100 space-y-6">
           <ReactMarkdown>{article.content}</ReactMarkdown>
         </div>
