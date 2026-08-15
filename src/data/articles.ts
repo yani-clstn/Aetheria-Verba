@@ -26,6 +26,16 @@ interface ArticleAttributes {
   subtitleQuote?: string;
 }
 
+// Fixed list of Category Tabs
+export const CATEGORIES = [
+  'All',
+  'Saved',
+  'Featured Stories',
+  'Other Stories',
+] as const;
+
+export type Category = (typeof CATEGORIES)[number];
+
 // Vite glob import for raw markdown files
 const markdownFiles = import.meta.glob('../content/articles/*.md', {
   query: '?raw',
