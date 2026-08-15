@@ -1,7 +1,7 @@
 ---
 id: "5"
 title: "Mahal Ang Magmahal"
-excerpt: "Love is expensive. It will cost you everything if you’re not careful. That’s why love shouldn’t feel cheap. That’s why mahal ang magmahal. Love isn’t just “gusto kita"
+excerpt: "Love is expensive. It will cost you everything if you’re not careful. That’s why love shouldn’t feel cheap. That’s why mahal ang magmahal. Love isn’t just 'gusto kita'"
 category: "Love"
 date: "Aug 12, 2026"
 readTime: "4 min read"

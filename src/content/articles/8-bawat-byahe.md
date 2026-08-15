@@ -2,7 +2,7 @@
 id: "8"
 title: "Bawat Byahe, Bawat Buhay"
 excerpt: "Sa loob lang ng isang byahe, nakita ko ang mundo."
-category: "Love"
+category: "Life"
 date: "Aug 13, 2026"
 readTime: "4 min read"
 imageUrl: "/assets/jeepney.png"
