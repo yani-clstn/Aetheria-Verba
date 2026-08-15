@@ -8,9 +8,10 @@ import ReactMarkdown from 'react-markdown';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ARTICLES, type Article } from './data/articles';
 import { useBookmarks } from './hooks/useBookmarks';
+import { supabase } from './lib/supabase';
 
-// --- VIEW COUNTER HELPER (Uses LocalStorage) ---
-const getViewCount = (articleId: string): number => {
+// --- VIEW COUNTER HELPERS (Supabase RPC with LocalStorage Fallback) ---
+const getLocalViewCount = (articleId: string): number => {
   const savedViews = localStorage.getItem(`aetheria_views_${articleId}`);
   return savedViews ? parseInt(savedViews, 10) : 12;
 };
@@ -111,6 +112,26 @@ function JournalHome({
   const { bookmarkedIds, toggleBookmark, isBookmarked } = useBookmarks();
 
   const categories = ['All', 'Saved', 'Featured Stories', 'Other Stories'];
+
+  // Fetch all article view counts from Supabase on mount
+  useEffect(() => {
+    async function fetchAllViews() {
+      try {
+        const { data, error } = await supabase.from('article_views').select('id, views');
+        if (!error && data) {
+          const viewsMap: Record<string, number> = {};
+          data.forEach((item: { id: string; views: number }) => {
+            viewsMap[item.id] = item.views;
+          });
+          setViewCounts(viewsMap);
+        }
+      } catch (err) {
+        console.error('Error fetching view counts:', err);
+      }
+    }
+
+    fetchAllViews();
+  }, []);
 
   const filteredArticles = ARTICLES.filter((article: Article) => {
     let matchesCategory = true;
@@ -402,6 +423,8 @@ function ArticleDetailPage() {
       const updatedViews = incrementViewCount(id);
       setViews(updatedViews);
     }
+
+    recordView();
   }, [id]);
 
   useEffect(() => {
@@ -450,13 +473,17 @@ function ArticleDetailPage() {
           <div className="flex justify-between items-center text-xs text-aetheria-blackberry/60 dark:text-aetheria-beige/60 uppercase tracking-wider mb-3">
             <span className="font-semibold text-aetheria-teal">{article.category}</span>
             <span className="flex items-center gap-1">
-              <Eye size={14} /> {views.toLocaleString()} views
+              <Eye size={14} /> {views > 0 ? views.toLocaleString() : '...'} views
             </span>
           </div>
 
           <h1 className="font-serif text-4xl md:text-6xl font-bold leading-tight mb-4 text-aetheria-blackberry dark:text-aetheria-beige">
             {article.title}
           </h1>
+
+          <p className="text-base md:text-lg text-aetheria-blackberry/80 dark:text-aetheria-beige/80 mb-4 font-serif italic">
+            {article.excerpt}
+          </p>
 
           <p className="text-sm text-aetheria-blackberry/70 dark:text-aetheria-beige/70">
             {article.date} • {article.readTime}
@@ -466,7 +493,7 @@ function ArticleDetailPage() {
         <img
           src={article.imageUrl}
           alt={article.title}
-          className="w-full h-80 md:h-[450px] object-cover rounded-2xl mb-10 shadow-lg border border-aetheria-blackberry/10 dark:border-aetheria-beige/10"
+          className="w-full h-80 md:h-[450px] object-cover rounded-2xl mb-8 shadow-lg border border-aetheria-blackberry/10 dark:border-aetheria-beige/10"
         />
 
         <div className="prose dark:prose-invert max-w-2xl mx-auto font-serif text-lg md:text-xl leading-relaxed text-stone-800 dark:text-stone-100 dark:prose-p:text-stone-100 space-y-6">

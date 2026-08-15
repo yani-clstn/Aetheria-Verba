@@ -10,6 +10,7 @@ export interface Article {
   readTime: string;
   imageUrl: string;
   featured?: boolean;
+  subtitleQuote?: string;
 }
 
 // Define interface for frontmatter attributes
@@ -22,6 +23,7 @@ interface ArticleAttributes {
   readTime: string;
   imageUrl: string;
   featured?: boolean;
+  subtitleQuote?: string;
 }
 
 // Fixed list of Category Tabs
@@ -54,6 +56,12 @@ export const ARTICLES: Article[] = Object.values(markdownFiles).map((rawContent)
     readTime: data.readTime,
     imageUrl: data.imageUrl,
     featured: Boolean(data.featured),
-    content: parsed.body, // The remaining markdown text
+    content: parsed.body,
+    subtitleQuote: data.subtitleQuote, // Maps the frontmatter to the object
   };
 });
+
+// Helper function to fetch an article by its unique ID
+export function getArticleById(id: string): Article | undefined {
+  return ARTICLES.find((article) => article.id === id);
+}

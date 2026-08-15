@@ -7,6 +7,7 @@ date: "Aug 11, 2026"
 readTime: "6 min read"
 imageUrl: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80"
 featured: true
+subtitleQuote: 'Built my walls so high that even I was trapped inside them. '
 ---
 
 We call it self-preservation, but sometimes it is just fear wearing a noble mask.

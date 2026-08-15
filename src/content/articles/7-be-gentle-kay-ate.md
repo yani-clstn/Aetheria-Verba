@@ -6,9 +6,10 @@ category: "Love"
 date: "Aug 13, 2026"
 readTime: "4 min read"
 imageUrl: "https://images.unsplash.com/photo-1516627145497-ae6968895b74?auto=format&fit=crop&w=1200&q=80"
+subtitleQuote: 'There is an unwritten rule that comes with being the eldest daughter: you are born into a role that requires you to figure things out on your own first.'
 ---
 
-There is an unwritten rule that comes with being the eldest daughter: you are born into a role that requires you to figure things out on your own first.
+
 
 You become the default third parent, the organizer, and the *takbuhan* of your younger brother. You learn how to guide your siblings through situations you had to navigate entirely alone. You become an expert at holding your composure, absorbing expectations, and carrying heavy responsibilities before you even fully understand what adult stress actually feels like.
 
