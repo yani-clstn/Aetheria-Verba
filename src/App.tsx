@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useParams, Link } from 'react-router-dom';
 import { Sun, Moon, Sparkles, Search, X, Bookmark, Eye, ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-import { ARTICLES, type Article } from './data/articles';
+import { ARTICLES, getArticleBySlug, type Article } from './data/articles';
 import { useBookmarks } from './hooks/useBookmarks';
 import { supabase } from './lib/supabase';
 
@@ -191,7 +191,7 @@ function JournalHome({
             >
               {featuredArticles.map((slide) => (
                 <div key={slide.id} className="min-w-full flex-shrink-0 p-6 md:p-8">
-                  <Link to={`/article/${slide.id}`} className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+                  <Link to={`/article/${slide.slug}`} className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
                     <div className="md:col-span-7 flex flex-col justify-between h-full">
                       <div>
                         <span className="inline-flex items-center gap-1 text-[10px] md:text-xs font-bold uppercase tracking-wider text-aetheria-teal mb-3">
@@ -271,7 +271,7 @@ function JournalHome({
                 key={article.id}
                 className="bg-white/40 dark:bg-aetheria-cardDark rounded-xl overflow-hidden border border-aetheria-blackberry/10 dark:border-aetheria-beige/10 flex flex-col justify-between hover:border-aetheria-teal/60 hover:shadow-[0_0_20px_rgba(45,212,191,0.2)] transition-all duration-300 group relative"
               >
-                <Link to={`/article/${article.id}`} className="block flex-1 flex flex-col justify-between">
+                <Link to={`/article/${article.slug}`} className="block flex-1 flex flex-col justify-between">
                   <div className="h-48 overflow-hidden relative">
                     <img 
                       src={article.imageUrl} 
@@ -329,30 +329,46 @@ function JournalHome({
 // 2. ARTICLE DETAIL PAGE COMPONENT
 // ==========================================
 function ArticleDetailPage() {
-  const { id } = useParams<{ id: string }>();
-  const article = ARTICLES.find((a) => a.id === id);
+  const { slug } = useParams<{ slug: string }>();
+  const article = slug ? (getArticleBySlug(slug) || ARTICLES.find((a) => a.id === slug)) : undefined;
   const [views, setViews] = useState<number>(0);
   const { isBookmarked, toggleBookmark } = useBookmarks();
 
-  useEffect(() => {
-    if (!id) return;
+ useEffect(() => {
+    if (!article) return;
+
+    const currentArticle = article; // Type guard assignment
+
     async function recordView() {
       try {
-        const { data, error } = await supabase.rpc('increment_views', { article_id: id });
+        const { data, error } = await supabase.rpc('increment_views', { 
+          article_id: currentArticle.id 
+        });
+
         if (!error && data !== null) {
           setViews(data);
-          localStorage.setItem(`aetheria_views_${id}`, data.toString());
+          localStorage.setItem(`aetheria_views_${currentArticle.id}`, data.toString());
         } else {
-          setViews(getLocalViewCount(id || '') + 1);
+          setViews(getLocalViewCount(currentArticle.id) + 1);
         }
       } catch (err) {
-        setViews(getLocalViewCount(id || '') + 1);
+        setViews(getLocalViewCount(currentArticle.id) + 1);
       }
     }
-    recordView();
-  }, [id]);
 
-  if (!article) return null;
+    recordView();
+  }, [article]);
+
+  if (!article) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center text-aetheria-blackberry dark:text-aetheria-beige">
+        <p className="text-lg font-serif mb-4">Story not found.</p>
+        <Link to="/" className="text-xs uppercase tracking-widest text-aetheria-teal hover:underline inline-flex items-center gap-1 font-semibold">
+          <ArrowLeft size={14} /> Back to home
+        </Link>
+      </div>
+    );
+  }
 
   const saved = isBookmarked(article.id);
 
@@ -409,7 +425,7 @@ export default function App() {
       <CursorGlow />
       <Routes>
         <Route path="/" element={<JournalHome darkMode={darkMode} setDarkMode={setDarkMode} />} />
-        <Route path="/article/:id" element={<ArticleDetailPage />} />
+        <Route path="/article/:slug" element={<ArticleDetailPage />} />
       </Routes>
     </BrowserRouter>
   );
